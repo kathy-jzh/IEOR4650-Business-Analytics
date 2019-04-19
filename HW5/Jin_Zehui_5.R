@@ -82,4 +82,117 @@ summary(linReg3)
 detach(df3)
 
 
+
 # Prob2 *****************************************************************************
+
+emaildata = read.csv("emails.csv",header=FALSE)
+
+# (a)
+## Pure Explore
+Pure_Explore = function(emaildata){
+  count = 0
+  regret = rep(0, nrow(emaildata))
+  for (i in c(1:nrow(emaildata))) {
+    pos = sample(1:5, 1, replace=T)
+    selected =  emaildata[i,][pos]
+    if (selected == 1) {count = count + 1}
+    regret[i] = 0.21*i - count
+  }
+  return(regret)
+}
+
+regret_Explore = Pure_Explore(emaildata)
+plot(regret_Explore, type = "l", xlab = "iteration", ylab = "Cumulative Regret", col = "red")
+
+## Pure Exploitation
+Pure_Exploit = function(emaildata){
+  count = 0
+  regret = rep(0, nrow(emaildata))
+  occur_time = rep(1, 5)
+  pick_time = rep(1, 5)
+  for (i in c(1:nrow(emaildata))) {
+    pos = which.max(occur_time/pick_time)
+    pick_time[pos] = pick_time[pos]+1
+    selected =  emaildata[i,][pos]
+    if (selected == 1) {
+      count = count + 1
+      occur_time[pos] = occur_time[pos]+1
+    }
+    regret[i] = 0.21*i - count
+  }
+  return(regret)
+}
+regret_Exploit =  Pure_Exploit(emaildata)
+lines(regret_Exploit, type = "l", col = "blue")
+
+## Explore then Exploit
+Explore_Exploit = function(emaildata, T0){
+  count = 0
+  regret = rep(0, nrow(emaildata))
+  occur_time = rep(1, 5)
+  pick_time = rep(1, 5)
+  for (i in c(1:nrow(emaildata))) {
+    pos = ifelse(i<T0, sample(1:5, 1, replace=T), which.max(occur_time/pick_time))
+    pick_time[pos] = pick_time[pos]+1
+    selected =  emaildata[i,][pos]
+    if (selected == 1) {
+      count = count + 1
+      occur_time[pos] = occur_time[pos]+1
+    }
+    regret[i] = 0.21*i - count
+  }
+  return(regret)
+}
+regret_Explore_Exploit =  Explore_Exploit(emaildata,100)
+lines(regret_Explore_Exploit, type = "l", col = "purple")
+
+## Epsilon Greedy
+Epsion_Greedy = function(emaildata){
+  count = 0
+  regret = rep(0, nrow(emaildata))
+  occur_time = rep(1, 5)
+  pick_time = rep(1, 5)
+  for (i in c(1:nrow(emaildata))) {
+    epsilon = 1/i
+    pos = ifelse(runif(1)<epsilon, sample(1:5, 1, replace=T), which.max(occur_time/pick_time))
+    pick_time[pos] = pick_time[pos]+1
+    selected =  emaildata[i,][pos]
+    if (selected == 1) {
+      count = count + 1
+      occur_time[pos] = occur_time[pos]+1
+    }
+    regret[i] = 0.21*i - count
+  }
+  return(regret)
+}
+regret_EG =  Epsion_Greedy(emaildata)
+lines(regret_EG, type = "l", col = "green")
+
+## UCB
+UCB = function(emaildata, alpha){
+  count = 0
+  regret = rep(0, nrow(emaildata))
+  occur_time = rep(1, 5)
+  pick_time = rep(1, 5)
+  for (i in c(1:nrow(emaildata))) {
+    pos = which.max(occur_time/pick_time+alpha*sqrt(log(i)/pick_time))
+    pick_time[pos] = pick_time[pos]+1
+    selected =  emaildata[i,][pos]
+    if (selected == 1) {
+      count = count + 1
+      occur_time[pos] = occur_time[pos]+1
+    }
+    regret[i] = 0.21*i - count
+  }
+  return(list(regret, pick_time))
+}
+regret_UCB =  UCB(emaildata, 0.75)[[1]]
+lines(regret_UCB, type = "l", col = "orange")
+
+legend(1, 350, legend=c("Pure Explore", "Pure Exploitation", "Explore then Exploit", "Epsilon Greedy", "UCB"),
+       col=c("red", "blue", "purple", "green", "orange"), lty=1:2, cex=0.8)
+
+# (b)
+dist1 = (UCB(emaildata[1:100,], 0.75)[[2]] - 1)/100
+dist2 = (UCB(emaildata[(nrow(emaildata)-99):nrow(emaildata),], 0.75)[[2]] - 1)/100
+dist1; dist2
